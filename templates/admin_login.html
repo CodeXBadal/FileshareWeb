@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Login — FileBot{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>🔐 Admin Login</h1>
+    <p>Enter your admin password to access the dashboard.</p>
+</div>
+
+{% if error %}
+<div class="alert alert-error">
+    <strong>❌ {{ error }}</strong>
+</div>
+{% endif %}
+
+<form method="POST" style="max-width: 420px; margin: 40px auto;" autocomplete="off">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <label for="pw" style="display: block; margin-bottom: 10px; font-weight: bold;">Admin password</label>
+    <input id="pw"
+           type="password"
+           name="password"
+           placeholder="Enter admin password"
+           required
+           autocomplete="current-password"
+           autofocus
+           style="width: 100%; padding: 14px; border: 2px solid var(--primary); border-radius: 25px; font-size: 16px; background: var(--surface); color: var(--text);">
+
+    <button type="submit" class="btn" style="width: 100%; padding: 14px; margin-top: 18px;">🔓 Login</button>
+    <a href="/" class="btn btn-secondary" style="width: 100%; margin-top: 10px; text-align: center; display: block;">← Back to Home</a>
+</form>
+
+<div style="text-align: center; margin-top: 30px; color: var(--text-muted); font-size: 13px;">
+    <p>🔒 Authorised administrators only.</p>
+</div>
+{% endblock %}

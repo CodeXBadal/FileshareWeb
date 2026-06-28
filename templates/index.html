@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}FileBot — Fast Telegram File Sharing{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>🚀 FileBot</h1>
+    <p>Fast &amp; secure file sharing — powered by Telegram MTProto.</p>
+</div>
+
+<div class="stats">
+    <div class="stat-card">
+        <h3>{{ users }}</h3>
+        <p>👥 Users</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ files }}</h3>
+        <p>📁 Files</p>
+    </div>
+    <div class="stat-card">
+        <h3>{{ views }}</h3>
+        <p>👁 Views</p>
+    </div>
+</div>
+
+<div style="text-align: center; margin: 40px 0;">
+    <h2>Share anything — without size limits.</h2>
+    <p style="margin: 20px 0; font-size: 18px;">
+        Send a file to our Telegram bot, get an instant link.<br>
+        Recipients download directly from Telegram's CDN — no account required.
+    </p>
+</div>
+
+<div style="margin-top: 50px; padding: 30px; background: var(--surface-alt); border-radius: 10px;">
+    <h3 style="color: var(--primary); margin-bottom: 20px; text-align: center;">✨ Features</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 20px;">
+        <div style="text-align: center;">
+            <div style="font-size: 3em;">⚡</div>
+            <h4>Lightning Fast</h4>
+            <p>Streaming from Telegram CDN — no re-upload, no waiting.</p>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 3em;">📦</div>
+            <h4>Any Size</h4>
+            <p>Up to Telegram's per-file ceiling. No 20 MB Bot-API cap.</p>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 3em;">🔒</div>
+            <h4>Revocable</h4>
+            <p>Kill any link at any time. Optional expiry &amp; download limits.</p>
+        </div>
+        <div style="text-align: center;">
+            <div style="font-size: 3em;">📊</div>
+            <h4>Track Views</h4>
+            <p>See exactly how many times each file is downloaded.</p>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info" style="margin-top: 30px;">
+    <strong>How to use:</strong>
+    Open Telegram → message the bot → send a file → you receive a share link.
+    Forward the link, paste it anywhere. That's it.
+</div>
+{% endblock %}

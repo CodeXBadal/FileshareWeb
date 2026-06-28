@@ -1,0 +1,107 @@
+# render.yaml — one-click Render deployment.
+#
+# Two services live in this file:
+#   * filebot-web    : the Flask download portal (gunicorn, gthread, 1 worker).
+#   * filebot-bot    : the Telegram bot (long-polling, single instance).
+#
+# Both services share the same MongoDB + the same Telethon STORAGE_CHANNEL_ID.
+# The bot service does NOT need TELEGRAM_API_ID/HASH/SESSION_STRING — those are
+# only consumed by the web service for streaming.
+
+services:
+  - type: web
+    name: filebot-web
+    runtime: python
+    plan: starter
+    rootDir: Website
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -c gunicorn_conf.py app:app
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        value: production
+      - key: FLASK_DEBUG
+        value: "0"
+      - key: WEB_CONCURRENCY
+        value: "1"
+      - key: WEB_THREADS
+        value: "16"
+      - key: WEB_TIMEOUT
+        value: "600"
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: file_sharing_bot
+      - key: FLASK_WEBSITE_URL
+        sync: false
+      - key: FLASK_SECRET_KEY
+        generateValue: true
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: TELEGRAM_API_ID
+        sync: false
+      - key: TELEGRAM_API_HASH
+        sync: false
+      - key: TELEGRAM_SESSION_STRING
+        sync: false
+      - key: STORAGE_CHANNEL_ID
+        sync: false
+      - key: NOTIFICATION_CHANNEL
+        sync: false
+      - key: LOGS_CHANNEL
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        value: "2000"
+      - key: WEBSITE_ITEMS_PER_PAGE
+        value: "10"
+
+  - type: worker
+    name: filebot-bot
+    runtime: python
+    plan: starter
+    rootDir: FileShare
+    buildCommand: pip install -r requirements.txt
+    startCommand: python bot.py
+    autoDeploy: true
+    envVars:
+      - key: ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        sync: false
+      - key: ADMIN_IDS
+        sync: false
+      - key: MONGODB_URI
+        sync: false
+      - key: DATABASE_NAME
+        value: file_sharing_bot
+      - key: FLASK_WEBSITE_URL
+        sync: false
+      - key: FLASK_SECRET_KEY
+        sync: false
+      - key: ADMIN_PASSWORD_HASH
+        sync: false
+      - key: STORAGE_CHANNEL_ID
+        sync: false
+      - key: NOTIFICATION_CHANNEL
+        sync: false
+      - key: LOGS_CHANNEL
+        sync: false
+      - key: CHANNEL_URL
+        sync: false
+      - key: DEVELOPER_URL
+        sync: false
+      - key: MAX_FILE_SIZE_MB
+        value: "2000"
+      - key: ITEMS_PER_PAGE
+        value: "5"
+      - key: BOT_PERSISTENCE_PATH
+        value: /tmp/bot_session.pkl

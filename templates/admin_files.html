@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Files — Admin{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div class="nav-left">
+        <a href="/admin">📊 Dashboard</a>
+        <a href="/admin/files" class="current">📁 Files</a>
+        <a href="/admin/users">👥 Users</a>
+    </div>
+    <a href="/admin/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
+</div>
+
+<div class="header">
+    <h1>📁 Manage Files</h1>
+    <p>View, download, copy links and delete uploaded files.</p>
+</div>
+
+<div class="search-box">
+    <form method="GET" action="/admin/files">
+        <input type="text"
+               name="search"
+               placeholder="🔍 Search files by name…"
+               value="{{ search }}"
+               maxlength="64">
+    </form>
+</div>
+
+{% if files %}
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>📄 File</th>
+                <th>👤 Owner</th>
+                <th>📦 Size</th>
+                <th>👁 Views</th>
+                <th>📅 Status</th>
+                <th>⚙️ Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for file in files %}
+            <tr>
+                <td class="truncate" title="{{ file.file_name or '(unnamed)' }}">
+                    {{ file.file_type | file_emoji }} {{ file.file_name or "(unnamed)" }}
+                </td>
+                <td>
+                    {{ file.owner_name }}
+                    {% if file.owner_username %}
+                    <br><small style="color: var(--text-muted);">@{{ file.owner_username }}</small>
+                    {% endif %}
+                </td>
+                <td class="nowrap">{{ (file.file_size or 0) | filesize }}</td>
+                <td>{{ file.views or 0 }}</td>
+                <td class="nowrap">
+                    {% if file.is_revoked %}
+                    <span style="color: var(--danger); font-weight: bold;">🚫 Revoked</span>
+                    {% else %}
+                    <span style="color: var(--success); font-weight: bold;">✅ Active</span>
+                    {% endif %}
+                    {% if file.expires_at %}
+                    <br><small style="color: var(--warn);">⏳ {{ file.expires_at.strftime('%Y-%m-%d') }}</small>
+                    {% endif %}
+                </td>
+                <td class="nowrap">
+                    <a href="/admin/file/download/{{ file._id }}"
+                       class="btn btn-success btn-sm">⬇️ Download</a>
+                    <button class="btn btn-ghost btn-sm copy-btn"
+                            type="button"
+                            data-copy="{{ request.url_root }}download/{{ file.token }}"
+                            title="Copy public link">📋 Copy</button>
+                    <button class="btn btn-danger btn-sm"
+                            type="button"
+                            data-action="delete-file"
+                            data-id="{{ file._id }}"
+                            data-name="{{ file.file_name or '(unnamed)' }}">🗑 Delete</button>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&search={{ search }}">← Previous</a>
+    {% else %}
+        <span class="disabled">← Previous</span>
+    {% endif %}
+    <span class="active">Page {{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&search={{ search }}">Next →</a>
+    {% else %}
+        <span class="disabled">Next →</span>
+    {% endif %}
+</div>
+
+{% else %}
+<div class="alert alert-error">
+    <h3>📭 No Files Found</h3>
+    <p>{% if search %}No files match your search query.{% else %}No files have been uploaded yet.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('click', async function (ev) {
+        const btn = ev.target.closest('[data-action="delete-file"]');
+        if (!btn) return;
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name') || 'this file';
+
+        const ok = await confirmDialog(
+            'Delete file?',
+            `Permanently delete “${name}”? This cannot be undone.`,
+            'Delete'
+        );
+        if (!ok) return;
+
+        const { ok: success, data } = await jsonPost('/admin/file/delete/' + encodeURIComponent(id));
+        if (success && data.success) {
+            toast('File deleted', 'success');
+            // Remove row instead of full reload for snappier UX.
+            const row = btn.closest('tr');
+            if (row) row.remove();
+        } else {
+            toast('Delete failed: ' + (data.error || 'unknown'), 'error');
+        }
+    });
+</script>
+{% endblock %}

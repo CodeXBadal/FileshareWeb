@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="description" content="{% block meta_description %}Fast and secure file sharing powered by Telegram MTProto.{% endblock %}">
+    <meta name="robots" content="{% block meta_robots %}index,follow{% endblock %}">
+    <meta property="og:title" content="{% block og_title %}FileBot — Fast Telegram File Sharing{% endblock %}">
+    <meta property="og:description" content="Share files of any size from Telegram with one link.">
+    <meta property="og:type" content="website">
+    <title>{% block title %}FileBot{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <div class="container">
+        {% block content %}{% endblock %}
+
+        <footer style="margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 13px;">
+            <button id="themeToggle" class="theme-toggle" type="button" aria-label="Toggle theme">
+                🌓 Theme
+            </button>
+        </footer>
+    </div>
+
+    <!-- Toast stack -->
+    <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Confirm modal -->
+    <div class="modal-backdrop" id="confirmModal" role="dialog" aria-modal="true" aria-hidden="true">
+        <div class="modal">
+            <h3 id="confirmTitle">Are you sure?</h3>
+            <p id="confirmBody">This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary btn-sm" type="button" id="confirmCancel">Cancel</button>
+                <button class="btn btn-danger btn-sm" type="button" id="confirmOk">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // -----------------------------------------------------------------
+        // Theme — persisted in localStorage; respects prefers-color-scheme.
+        // -----------------------------------------------------------------
+        (function () {
+            const saved = localStorage.getItem('filebot-theme');
+            const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+            const startTheme = saved || (prefersDark ? 'dark' : 'light');
+            document.documentElement.setAttribute('data-theme', startTheme);
+
+            const btn = document.getElementById('themeToggle');
+            if (btn) {
+                btn.addEventListener('click', function () {
+                    const current = document.documentElement.getAttribute('data-theme');
+                    const next = current === 'dark' ? 'light' : 'dark';
+                    document.documentElement.setAttribute('data-theme', next);
+                    localStorage.setItem('filebot-theme', next);
+                });
+            }
+        })();
+
+        // -----------------------------------------------------------------
+        // CSRF helper.
+        // -----------------------------------------------------------------
+        function csrfToken() {
+            const el = document.querySelector('meta[name="csrf-token"]');
+            return el ? el.content : '';
+        }
+
+        // -----------------------------------------------------------------
+        // Toasts. Usage:  toast('Done', 'success')
+        // -----------------------------------------------------------------
+        function toast(message, kind = 'info', ttl = 3000) {
+            const stack = document.getElementById('toastStack');
+            if (!stack) return;
+            const t = document.createElement('div');
+            t.className = 'toast ' + kind;
+            t.textContent = message;
+            stack.appendChild(t);
+            // Allow the browser to compute layout before transitioning.
+            requestAnimationFrame(function () { t.classList.add('show'); });
+            setTimeout(function () {
+                t.classList.remove('show');
+                setTimeout(function () { t.remove(); }, 300);
+            }, ttl);
+        }
+
+        // -----------------------------------------------------------------
+        // Confirmation modal. Returns a Promise<boolean>.
+        // -----------------------------------------------------------------
+        function confirmDialog(title, body, okLabel = 'Confirm') {
+            return new Promise(function (resolve) {
+                const backdrop = document.getElementById('confirmModal');
+                const titleEl  = document.getElementById('confirmTitle');
+                const bodyEl   = document.getElementById('confirmBody');
+                const okBtn    = document.getElementById('confirmOk');
+                const cancelBtn = document.getElementById('confirmCancel');
+                titleEl.textContent = title;
+                bodyEl.textContent  = body;
+                okBtn.textContent   = okLabel;
+                backdrop.classList.add('open');
+                backdrop.setAttribute('aria-hidden', 'false');
+
+                function cleanup(result) {
+                    backdrop.classList.remove('open');
+                    backdrop.setAttribute('aria-hidden', 'true');
+                    okBtn.removeEventListener('click', onOk);
+                    cancelBtn.removeEventListener('click', onCancel);
+                    backdrop.removeEventListener('click', onBackdrop);
+                    document.removeEventListener('keydown', onKey);
+                    resolve(result);
+                }
+                function onOk()      { cleanup(true); }
+                function onCancel()  { cleanup(false); }
+                function onBackdrop(e) { if (e.target === backdrop) cleanup(false); }
+                function onKey(e)    { if (e.key === 'Escape') cleanup(false); }
+
+                okBtn.addEventListener('click', onOk);
+                cancelBtn.addEventListener('click', onCancel);
+                backdrop.addEventListener('click', onBackdrop);
+                document.addEventListener('keydown', onKey);
+            });
+        }
+
+        // -----------------------------------------------------------------
+        // Copy-to-clipboard helper. Used by .copy-btn buttons with
+        // data-copy="<text>".
+        // -----------------------------------------------------------------
+        document.addEventListener('click', function (ev) {
+            const el = ev.target.closest('.copy-btn');
+            if (!el) return;
+            const text = el.getAttribute('data-copy') || '';
+            if (!text) return;
+            ev.preventDefault();
+            const done = function () {
+                const orig = el.textContent;
+                el.textContent = '✓ Copied';
+                el.classList.add('copied');
+                toast('Link copied to clipboard', 'success', 1800);
+                setTimeout(function () {
+                    el.textContent = orig;
+                    el.classList.remove('copied');
+                }, 1500);
+            };
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(text).then(done).catch(function () {
+                    fallbackCopy(text, done);
+                });
+            } else {
+                fallbackCopy(text, done);
+            }
+        });
+
+        function fallbackCopy(text, done) {
+            const ta = document.createElement('textarea');
+            ta.value = text;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            try { document.execCommand('copy'); done(); }
+            catch (_) { toast('Copy failed', 'error'); }
+            ta.remove();
+        }
+
+        // -----------------------------------------------------------------
+        // Convenience: POST with CSRF + JSON response handling.
+        // -----------------------------------------------------------------
+        async function jsonPost(url) {
+            const r = await fetch(url, {
+                method: 'POST',
+                credentials: 'same-origin',
+                headers: { 'X-CSRFToken': csrfToken(), 'Accept': 'application/json' }
+            });
+            let data = {};
+            try { data = await r.json(); } catch (_) {}
+            return { ok: r.ok, status: r.status, data: data };
+        }
+    </script>
+
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

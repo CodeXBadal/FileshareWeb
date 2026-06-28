@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard — FileBot{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div class="nav-left">
+        <a href="/admin" class="current">📊 Dashboard</a>
+        <a href="/admin/files">📁 Files</a>
+        <a href="/admin/users">👥 Users</a>
+    </div>
+    <a href="/admin/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
+</div>
+
+<div class="header">
+    <h1>📊 Admin Dashboard</h1>
+    <p>Welcome back, Administrator.</p>
+</div>
+
+<div class="stats">
+    <div class="stat-card"><h3>{{ users }}</h3><p>👥 Total Users</p></div>
+    <div class="stat-card"><h3>{{ files }}</h3><p>📁 Total Files</p></div>
+    <div class="stat-card"><h3>{{ views }}</h3><p>👁 Total Views</p></div>
+    <div class="stat-card"><h3>{{ banned }}</h3><p>🚫 Banned Users</p></div>
+    <div class="stat-card"><h3>{{ revoked }}</h3><p>🔒 Revoked Files</p></div>
+    <div class="stat-card"><h3>{{ storage | filesize }}</h3><p>💾 Total Storage</p></div>
+</div>
+
+<div style="margin-top: 40px; padding: 28px; background: var(--surface-alt); border-radius: 10px;">
+    <h3 style="color: var(--primary); margin-bottom: 20px;">⚡ Quick Actions</h3>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px;">
+        <a href="/admin/files" class="btn" style="text-align: center;">📁 Manage Files</a>
+        <a href="/admin/users" class="btn" style="text-align: center;">👥 Manage Users</a>
+        <a href="/" class="btn btn-secondary" style="text-align: center;">🏠 Public Page</a>
+    </div>
+</div>
+
+<div class="alert alert-info" style="margin-top: 30px;">
+    <h4 style="color: var(--primary);">💡 Admin tips</h4>
+    <ul style="margin-top: 8px; line-height: 1.9; padding-left: 20px;">
+        <li>Use search in the Files / Users sections to drill into specific records.</li>
+        <li>Bans take effect immediately — the user's next request will be refused.</li>
+        <li>Soft-deleted files remain in the database until <code>scripts/cleanup_db.py</code> runs.</li>
+        <li>Logs auto-purge after 90 days via a MongoDB TTL index.</li>
+    </ul>
+</div>
+{% endblock %}

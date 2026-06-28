@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Downloading {{ file.file_name or "file" }} — FileBot{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1>{{ emoji }} Preparing your download…</h1>
+</div>
+
+<div class="download-card">
+    <div class="spinner" aria-hidden="true"></div>
+
+    <div class="filename">{{ file.file_name or "(unnamed file)" }}</div>
+    <div class="meta">
+        <span>{{ (file.file_size or 0) | filesize }}</span>
+        {% if file.file_type %} · <span>{{ file.file_type|upper }}</span>{% endif %}
+        {% if file.expires_at %}
+            · <span>⏳ expires {{ file.expires_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+        {% endif %}
+    </div>
+
+    <p id="dlMessage" style="margin: 12px 0;">
+        Your download should start automatically. If it doesn't,
+        <a id="dlFallback" href="/raw/{{ token }}">click here</a>.
+    </p>
+
+    <div class="link-block">
+        <code id="shareLink">{{ request.url_root }}d/{{ token }}</code>
+        <button class="copy-btn" type="button" data-copy="{{ request.url_root }}d/{{ token }}">📋 Copy</button>
+    </div>
+
+    <a href="/" class="btn btn-secondary btn-sm" style="margin-top: 20px;">← Back home</a>
+</div>
+
+<script>
+    // F12 — auto-trigger the real download after a short pause so the
+    // spinner can paint. We navigate to /raw/<token> via a hidden iframe so
+    // the user's current tab stays put (and our copy-link / back button
+    // remain reachable).
+    (function () {
+        const url = "/raw/{{ token }}";
+        setTimeout(function () {
+            // Try `location.assign` first — best UX for normal downloads.
+            const iframe = document.createElement('iframe');
+            iframe.style.display = 'none';
+            iframe.src = url;
+            document.body.appendChild(iframe);
+            // After we kick the download, change the message.
+            setTimeout(function () {
+                const msg = document.getElementById('dlMessage');
+                if (msg) {
+                    msg.innerHTML = '✅ Download started! If nothing happened, '
+                                  + '<a href="' + url + '">click here</a>.';
+                }
+            }, 1500);
+        }, 800);
+    })();
+</script>
+{% endblock %}

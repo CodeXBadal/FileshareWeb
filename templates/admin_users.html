@@ -1,0 +1,146 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Users — Admin{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="nav">
+    <div class="nav-left">
+        <a href="/admin">📊 Dashboard</a>
+        <a href="/admin/files">📁 Files</a>
+        <a href="/admin/users" class="current">👥 Users</a>
+    </div>
+    <a href="/admin/logout" class="btn btn-danger btn-sm">🚪 Logout</a>
+</div>
+
+<div class="header">
+    <h1>👥 Manage Users</h1>
+    <p>Search, view and moderate users.</p>
+</div>
+
+<div class="search-box">
+    <form method="GET" action="/admin/users">
+        <input type="text"
+               name="search"
+               placeholder="🔍 Search by username, name or user ID…"
+               value="{{ search }}"
+               maxlength="64">
+    </form>
+</div>
+
+{% if users %}
+<div class="table-wrap">
+    <table>
+        <thead>
+            <tr>
+                <th>👤 Name</th>
+                <th>📱 Username</th>
+                <th>🆔 User ID</th>
+                <th>📁 Files</th>
+                <th>💾 Storage</th>
+                <th>📅 Status</th>
+                <th>⚙️ Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.first_name }}</td>
+                <td>
+                    {% if user.username %}
+                        @{{ user.username }}
+                    {% else %}
+                        <span style="color: var(--text-muted);">N/A</span>
+                    {% endif %}
+                </td>
+                <td class="nowrap"><code>{{ user.user_id }}</code></td>
+                <td>{{ user.file_count or 0 }}</td>
+                <td class="nowrap">{{ (user.storage or 0) | filesize }}</td>
+                <td>
+                    {% if user.banned %}
+                        <span style="color: var(--danger); font-weight: bold;">🚫 Banned</span>
+                    {% else %}
+                        <span style="color: var(--success); font-weight: bold;">✅ Active</span>
+                    {% endif %}
+                </td>
+                <td class="nowrap">
+                    {% if user.banned %}
+                    <button class="btn btn-success btn-sm"
+                            type="button"
+                            data-action="unban-user"
+                            data-id="{{ user.user_id }}"
+                            data-name="{{ user.first_name or user.username or user.user_id }}">
+                        ✅ Unban
+                    </button>
+                    {% else %}
+                    <button class="btn btn-danger btn-sm"
+                            type="button"
+                            data-action="ban-user"
+                            data-id="{{ user.user_id }}"
+                            data-name="{{ user.first_name or user.username or user.user_id }}">
+                        🚫 Ban
+                    </button>
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="pagination">
+    {% if page > 1 %}
+        <a href="?page={{ page - 1 }}&search={{ search }}">← Previous</a>
+    {% else %}
+        <span class="disabled">← Previous</span>
+    {% endif %}
+    <span class="active">Page {{ page }} / {{ total_pages }}</span>
+    {% if page < total_pages %}
+        <a href="?page={{ page + 1 }}&search={{ search }}">Next →</a>
+    {% else %}
+        <span class="disabled">Next →</span>
+    {% endif %}
+</div>
+
+{% else %}
+<div class="alert alert-error">
+    <h3>📭 No Users Found</h3>
+    <p>{% if search %}No users match your search query.{% else %}No users have registered yet.{% endif %}</p>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('click', async function (ev) {
+        const banBtn = ev.target.closest('[data-action="ban-user"]');
+        const unbanBtn = ev.target.closest('[data-action="unban-user"]');
+        const btn = banBtn || unbanBtn;
+        if (!btn) return;
+
+        const id = btn.getAttribute('data-id');
+        const name = btn.getAttribute('data-name') || ('user ' + id);
+        const banning = !!banBtn;
+
+        const ok = await confirmDialog(
+            banning ? 'Ban user?' : 'Unban user?',
+            banning
+                ? `Ban ${name}? They will not be able to use the bot until you unban them.`
+                : `Unban ${name}? They will be able to use the bot again.`,
+            banning ? 'Ban' : 'Unban'
+        );
+        if (!ok) return;
+
+        const url = banning
+            ? '/admin/user/ban/' + encodeURIComponent(id)
+            : '/admin/user/unban/' + encodeURIComponent(id);
+        const { ok: success, data } = await jsonPost(url);
+        if (success && data.success) {
+            toast(banning ? 'User banned' : 'User unbanned', 'success');
+            setTimeout(function () { location.reload(); }, 700);
+        } else {
+            toast('Action failed: ' + (data.error || 'unknown'), 'error');
+        }
+    });
+</script>
+{% endblock %}

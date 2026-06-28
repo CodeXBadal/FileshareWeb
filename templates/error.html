@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}{{ message }} — FileBot{% endblock %}
+{% block meta_robots %}noindex,nofollow{% endblock %}
+
+{% block content %}
+<div class="header">
+    <h1 style="font-size: 3em;">😕</h1>
+    <h2 style="color: var(--primary); margin-top: 10px;">{{ message }}</h2>
+</div>
+
+<div class="alert alert-error">
+    <h3>{{ error }}</h3>
+</div>
+
+<div style="text-align: center; margin: 30px 0;">
+    <a href="/" class="btn" style="padding: 14px 36px; font-size: 17px;">🏠 Go Home</a>
+</div>
+
+<div style="margin-top: 40px; text-align: center; color: var(--text-muted); font-size: 13px;">
+    <p>If you believe this is an error, contact the administrator.</p>
+</div>
+{% endblock %}
